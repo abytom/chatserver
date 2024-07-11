@@ -1,25 +1,19 @@
 const express = require('express');
 const axios = require('axios');
-const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
+app.use(express.json());
 
 app.post('/api/chat', async (req, res) => {
-    const message = req.body.message;
+    const userMessage = req.body.message;
 
     try {
         const response = await axios.post('https://api.openai.com/v1/chat/completions', {
             model: 'gpt-3.5-turbo',
-            messages: [
-                { role: 'system', content: 'You are a helpful assistant.' },
-                { role: 'user', content: message }
-            ],
-            max_tokens: 150,
-            temperature: 0.9,
+            messages: [{ role: 'user', content: userMessage }],
         }, {
             headers: {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -27,13 +21,14 @@ app.post('/api/chat', async (req, res) => {
             },
         });
 
-        res.json(response.data);
+        const botMessage = response.data.choices[0].message.content;
+        res.json({ message: botMessage });
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Error communicating with ChatGPT');
+        console.error('Error communicating with OpenAI API:', error);
+        res.status(500).json({ error: 'Error communicating with OpenAI API' });
     }
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server is running on port ${port}`);
 });
